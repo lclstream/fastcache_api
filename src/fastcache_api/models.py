@@ -25,8 +25,8 @@ class CacheConfig(BaseModel):
     """
 
     hostname: str
-    pull_uri: str
-    push_uri: str
+    pull_uri: AnyUrl
+    push_uri: AnyUrl
     type: int = 4
     helper_threads: int = 0
     num_workers: int = 1
@@ -54,8 +54,8 @@ class FastcacheConfig(BaseModel):
     def from_cache_config(cls, config: CacheConfig) -> FastcacheConfig:
         cfg_dict = config.model_dump(mode="json", exclude={"pull_uri", "push_uri"})
         return cls(
-            inurl=config.pull_uri,
-            outurl=config.push_uri,
+            inurl=str(config.pull_uri),
+            outurl=str(config.push_uri),
             **cfg_dict,
         )
 
