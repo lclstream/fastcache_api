@@ -1,3 +1,4 @@
+import json
 from enum import StrEnum
 from pathlib import Path
 from uuid import UUID
@@ -21,7 +22,9 @@ class CacheConfig(BaseModel):
     """Configuration document persisted as JSON on a cache row.
 
     Mirrors the cacheserver config (see config/default.json) plus the
-    resolved ZMQ bind URIs.
+    resolved ZMQ bind URIs. ``to_fastcache_json`` renders the on-disk config
+    the fastcache binary consumes (see src/config.cpp): the ZMQ URIs are
+    renamed to ``inurl``/``outurl`` and ``hostname`` is dropped.
     """
 
     hostname: str
@@ -31,33 +34,18 @@ class CacheConfig(BaseModel):
     helper_threads: int = 0
     io_threads: int = 16
     hwm: int = 10
+    # Default to 2 minutes for now.
     timeout: int = 120_000
     verbose: bool = False
 
-
-class FastcacheConfig(BaseModel):
-    """On-disk config consumed by the fastcache binary (see src/config.cpp).
-
-    We should adjust these fields later to better match the request schema.
-    """
-
-    inurl: str
-    outurl: str
-    type: int = 4
-    helper_threads: int = 0
-    io_threads: int = 16
-    hwm: int = 10
-    # Let default to 2 minutes for now.
-    timeout: int = 120_000
-    verbose: bool = False
-
-    @classmethod
-    def from_cache_config(cls, config: CacheConfig) -> FastcacheConfig:
-        cfg_dict = config.model_dump(mode="json", exclude={"pull_uri", "push_uri"})
-        return cls(
-            inurl=str(config.pull_uri),
-            outurl=str(config.push_uri),
-            **cfg_dict,
+    def to_fastcache_json(self, indent: int = 2) -> str:
+        """Render the config consumed by the fastcache binary."""
+        data = self.model_dump(
+            mode="json", exclude={"hostname", "pull_uri", "push_uri"}
+        )
+        return json.dumps(
+            {"inurl": str(self.pull_uri), "outurl": str(self.push_uri), **data},
+            indent=indent,
         )
 
 
