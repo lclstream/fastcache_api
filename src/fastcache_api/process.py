@@ -3,6 +3,7 @@ import logging
 import socket
 import subprocess
 from collections.abc import Iterable
+from pathlib import Path
 from uuid import UUID
 
 import psutil
@@ -35,17 +36,18 @@ def allocate_port_pair(in_use: set[int], start: int, end: int) -> tuple[int, int
     raise RuntimeError(f"no free cache port pair in range [{start}, {end}]")
 
 
-def start_cache(cache_id: UUID, config: CacheConfig) -> CacheProcess:
-    run_dir = settings.RUN_DIR / str(cache_id)
+def start_cache(cache_id: UUID, config: CacheConfig, log_path: Path) -> CacheProcess:
+    run_dir = log_path.parent
     run_dir.mkdir(parents=True, exist_ok=True)
 
     config_path = run_dir / "config.json"
     config_path.write_text(config.to_fastcache_json())
 
-    log_path = (run_dir / "cache.log").resolve()
+    log_path = log_path.resolve()
     with log_path.open("ab") as log_file:
         proc = subprocess.Popen(
             [settings.FASTCACHE_BINARY, config_path],
+            cwd=run_dir,
             stdout=log_file,
             stderr=subprocess.STDOUT,
             start_new_session=True,
