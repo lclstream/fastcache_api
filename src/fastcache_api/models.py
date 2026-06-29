@@ -2,10 +2,10 @@ from enum import StrEnum
 from pathlib import Path
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import AnyUrl, BaseModel, ConfigDict
 
 
-class CacheStatus(StrEnum):
+class CacheState(StrEnum):
     new = "new"
     queued = "queued"
     active = "active"
@@ -73,7 +73,7 @@ class CachePublic(BaseModel):
     id: UUID
     transfer_id: str
     user: str
-    status: CacheStatus
+    state: CacheState
     log_path: Path
     config: CacheConfig
 
