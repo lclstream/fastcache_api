@@ -230,3 +230,5 @@ __marimo__/
 # sqlite
 *.sqlite
 *.db
+# certs and keys (mounted from s3df at runtime)
+certs/
