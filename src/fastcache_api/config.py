@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     OIDC_JWKS_URI: str | None = None
     OIDC_AUDIENCES: Annotated[list[str], BeforeValidator(parse_comma_list)] = []
 
+    CACHE_PORT_START: int = 30000
+    CACHE_PORT_END: int = 30100
+
     # Cache process management
     # Path to the fastcache executable (overridable; defaults to PATH lookup).
     FASTCACHE_BINARY: Path = Path("lclstream-fastcache")
