@@ -51,8 +51,6 @@ class Settings(BaseSettings):
     # Cache process management
     # Path to the fastcache executable (overridable; defaults to PATH lookup).
     FASTCACHE_BINARY: Path = Path("lclstream-fastcache")
-    # Directory where per-cache config/log files are written.
-    RUN_DIR: Path = Path("run")
     # Grace period before escalating SIGTERM to SIGKILL on shutdown.
     SHUTDOWN_GRACE_SECONDS: float = 5.0
     # How often the liveness poller checks running caches against their pids.
