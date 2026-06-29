@@ -64,9 +64,9 @@ async def create_cache(
         )
 
     config = CacheConfig(
-        hostname=req.hostname,
-        pull_uri=f"tcp://{req.hostname}:{req.pull_port}",
-        push_uri=f"tcp://{req.hostname}:{req.push_port}",
+        hostname=hostname,
+        pull_uri=f"tcp://{hostname}:{pull_port}",
+        push_uri=f"tcp://{hostname}:{push_port}",
     )
 
     cache_id = uuid4()
@@ -83,7 +83,7 @@ async def create_cache(
         transfer_id=req.transfer_id,
         pid=proc.pid,
         create_time=proc.create_time,
-        user=user.email,
+        user=req.requested_by,
         status=CacheStatus.active,
         log_path=str(proc.log_path),
         config=config.model_dump(mode="json"),
