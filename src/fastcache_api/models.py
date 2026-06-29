@@ -29,7 +29,6 @@ class CacheConfig(BaseModel):
     push_uri: AnyUrl
     type: int = 4
     helper_threads: int = 0
-    num_workers: int = 1
     io_threads: int = 16
     hwm: int = 10
     timeout: int = -1
@@ -46,7 +45,6 @@ class FastcacheConfig(BaseModel):
     outurl: str
     type: int = 4
     helper_threads: int = 0
-    num_workers: int = 1
     io_threads: int = 16
     hwm: int = 10
     timeout: int = -1
