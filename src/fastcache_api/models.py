@@ -31,7 +31,7 @@ class CacheConfig(BaseModel):
     helper_threads: int = 0
     io_threads: int = 16
     hwm: int = 10
-    timeout: int = -1
+    timeout: int = 120_000
     verbose: bool = False
 
 
@@ -47,7 +47,8 @@ class FastcacheConfig(BaseModel):
     helper_threads: int = 0
     io_threads: int = 16
     hwm: int = 10
-    timeout: int = -1
+    # Let default to 2 minutes for now.
+    timeout: int = 120_000
     verbose: bool = False
 
     @classmethod
