@@ -14,7 +14,7 @@ from ..models import (
     CachePublic,
     CacheRequest,
     CachesPublic,
-    CacheStatus,
+    CacheState,
 )
 from ..process import (
     allocate_port_pair,
@@ -104,7 +104,7 @@ async def create_cache(
         pid=proc.pid,
         create_time=proc.create_time,
         user=req.requested_by,
-        status=CacheStatus.active,
+        state=CacheState.active,
         log_path=str(proc.log_path),
         config=config.model_dump(mode="json"),
     )
@@ -137,7 +137,7 @@ async def shutdown_cache(
             status_code=status.HTTP_404_NOT_FOUND, detail="Cache not found"
         )
 
-    cache.status = CacheStatus.canceled
+    cache.state = CacheState.canceled
     await session.commit()
     await session.refresh(cache)
 

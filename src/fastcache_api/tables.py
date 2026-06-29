@@ -9,7 +9,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from .models import CacheStatus
+from .models import CacheState
 
 
 class Base(DeclarativeBase):
@@ -46,9 +46,9 @@ class Cache(DTMixin, Base):
         doc=("psutil process create_time at launch. We can key by pid/create_time."),
     )
     user: Mapped[str] = mapped_column(doc="User that created this cache")
-    status: Mapped[str] = mapped_column(
-        default=CacheStatus.new,
-        doc="Lifecycle status; stored as the CacheStatus string value",
+    state: Mapped[str] = mapped_column(
+        default=CacheState.new,
+        doc="Lifecycle state; stored as the CacheState string value",
     )
     log_path: Mapped[str] = mapped_column(
         doc="Absolute path to the cache process log file",
