@@ -32,6 +32,7 @@ class CacheConfig(BaseModel):
     num_workers: int = 1
     io_threads: int = 16
     hwm: int = 10
+    timeout: int = -1
     verbose: bool = False
 
 
@@ -48,6 +49,7 @@ class FastcacheConfig(BaseModel):
     num_workers: int = 1
     io_threads: int = 16
     hwm: int = 10
+    timeout: int = -1
     verbose: bool = False
 
     @classmethod
