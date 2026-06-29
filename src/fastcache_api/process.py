@@ -3,7 +3,6 @@ import logging
 import socket
 import subprocess
 from collections.abc import Iterable
-from functools import lru_cache
 from uuid import UUID
 
 import psutil
@@ -12,13 +11,6 @@ from .config import settings
 from .models import CacheConfig, CacheProcess, FastcacheConfig
 
 logger = logging.getLogger(__name__)
-
-
-@lru_cache(maxsize=1)
-def local_hostnames() -> set[str]:
-    names = {socket.gethostname(), socket.getfqdn()}
-    names |= {name.split(".", 1)[0] for name in names}
-    return {name.lower() for name in names if name}
 
 
 def canonical_hostname() -> str:

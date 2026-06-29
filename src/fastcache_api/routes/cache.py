@@ -16,7 +16,13 @@ from ..models import (
     CachesPublic,
     CacheStatus,
 )
-from ..process import local_hostnames, start_cache, stop_cache
+from ..process import (
+    allocate_port_pair,
+    canonical_hostname,
+    ports_in_use,
+    start_cache,
+    stop_cache,
+)
 from ..tables import Cache
 
 router = APIRouter(
@@ -54,14 +60,28 @@ async def create_cache(
     user: Annotated[TokenPayload, Depends(require_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    if req.hostname.lower() not in local_hostnames():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                f"Cache must run on this api server's host; request specified "
-                f"'{req.hostname}'"
-            ),
+    # The cache always runs as a local subprocess of this api server, so the
+    # ZMQ URIs are published under this host's canonical (FQDN) name.
+    hostname = canonical_hostname()
+
+    # Derive the ports already bound by live caches and allocate the next free pair.
+    active = await session.execute(
+        select(Cache).where(
+            Cache.state.in_([s.value for s in CacheState if not s.is_final()])
         )
+    )
+    in_use = ports_in_use(
+        CacheConfig.model_validate(cache.config) for cache in active.scalars().all()
+    )
+    try:
+        pull_port, push_port = allocate_port_pair(
+            in_use, settings.CACHE_PORT_START, settings.CACHE_PORT_END
+        )
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
 
     config = CacheConfig(
         hostname=hostname,
