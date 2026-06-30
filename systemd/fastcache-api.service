@@ -1,0 +1,55 @@
+# fastcache_api systemd user unit
+#
+# Install:
+#   mkdir -p ~/.config/systemd/user
+#   cp systemd/fastcache-api.service ~/.config/systemd/user/
+#   mkdir -p ~/.config/fastcache_api
+#   cp systemd/fastcache_api.env.example ~/.config/fastcache_api/fastcache_api.env
+#   $EDITOR ~/.config/fastcache_api/fastcache_api.env
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now fastcache-api.service
+#
+# This is a *user* unit, so it normally only runs while you're logged in.
+# To keep it running across logouts (e.g. on an S3DF login node), enable
+# lingering once:
+#   loginctl enable-linger "$USER"
+#
+# Certs are NOT fetched automatically here: Vault OIDC login needs a browser,
+# so an ExecStartPre that calls Vault would block startup/restarts whenever
+# the cached token (~/.vault-token) has expired. Instead, point SSL_CERTFILE/
+# SSL_KEYFILE/SSL_CA_CERTS (in the env file) at wherever your certs already
+# live -- e.g. this repo's certs/ dir after `make certs` -- and refresh them
+# yourself periodically (`make certs && make vault-push`, or run
+# systemd/fetch-certs.sh by hand), then `systemctl --user restart
+# fastcache-api.service` to pick up the new files.
+
+[Unit]
+Description=LCLStream fastcache API
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=%h/gits/lclstream/fastcache_api
+EnvironmentFile=%h/.config/fastcache_api/fastcache_api.env
+# systemd 239 here predates StandardOutput=append: (needs v240+), so redirect
+# via a shell instead. Logs (uvicorn + our own logging) land in a real file
+# under .local/state instead of only the (often unreadable) user journal.
+ExecStart=/bin/sh -c 'exec "%h/gits/lclstream/fastcache_api/.venv/bin/fastcache-api" >> "%h/.local/state/fastcache_api/fastcache-api.log" 2>&1'
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+# Light hardening. Avoid ProtectHome/ProtectSystem here: the app reads/writes
+# SQLITE_PATH, the certs, the API log, and request-supplied cache log dirs.
+NoNewPrivileges=true
+PrivateTmp=true
+# Owner-only by default for anything the process creates (sqlite db, API log,
+# and per-cache config.json/log files next to each request's log_path).
+# Directories made ahead of time should also be chmod 700.
+UMask=0077
+
+[Install]
+WantedBy=default.target
