@@ -65,6 +65,7 @@ class CachePublic(BaseModel):
     transfer_id: str
     user: str
     state: CacheState
+    exit_code: int | None
     log_path: Path
     config: CacheConfig
 
