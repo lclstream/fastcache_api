@@ -42,6 +42,14 @@ def allocate_port_pair(in_use: set[int], start: int, end: int) -> tuple[int, int
 _processes: dict[int, anyio.abc.Process] = {}
 
 
+def exit_code(pid: int) -> int | None:
+    """Exit code of a pid we spawned. None if unknown to us or still running."""
+    proc = _processes.get(pid)
+    if proc is None:
+        return None
+    return proc.returncode
+
+
 async def wait_exit(pid: int) -> int | None:
     """Await a pid we spawned exiting. None if unknown to us."""
     proc = _processes.get(pid)
