@@ -82,6 +82,8 @@ def resolve_process(pid: int, create_time: float | None) -> psutil.Process | Non
         return None
     try:
         proc = psutil.Process(pid)
+        if proc.status() == psutil.STATUS_ZOMBIE:
+            return None
         if abs(proc.create_time() - create_time) <= _CREATE_TIME_TOLERANCE:
             return proc
     except psutil.Error:
