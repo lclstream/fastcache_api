@@ -50,6 +50,9 @@ class Cache(DTMixin, Base):
         default=CacheState.new,
         doc="Lifecycle state; stored as the CacheState string value",
     )
+    exit_code: Mapped[int | None] = mapped_column(
+        default=None, doc="OS exit code once the process has ended"
+    )
     log_path: Mapped[str] = mapped_column(
         doc="Absolute path to the cache process log file",
     )
