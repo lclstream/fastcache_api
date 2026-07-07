@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Annotated, Any, Literal
 
 from pydantic import BeforeValidator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 def parse_comma_list(v: Any) -> list[str] | str:
@@ -37,13 +37,17 @@ class Settings(BaseSettings):
     SQLITE_PATH: Path = Path("fastcache_api.sqlite")
 
     # Verified email addresses allowed to access the service.
-    EXPECTED_USERS: Annotated[list[str], BeforeValidator(parse_comma_list)] = []
+    EXPECTED_USERS: Annotated[
+        list[str], BeforeValidator(parse_comma_list), NoDecode
+    ] = []
 
     # OIDC token validation. Identity provider is configured via environment;
     # no provider URL is baked into source.
     OIDC_ISSUER_URL: str
     OIDC_JWKS_URI: str | None = None
-    OIDC_AUDIENCES: Annotated[list[str], BeforeValidator(parse_comma_list)] = []
+    OIDC_AUDIENCES: Annotated[
+        list[str], BeforeValidator(parse_comma_list), NoDecode
+    ] = []
 
     CACHE_PORT_START: int = 30000
     CACHE_PORT_END: int = 30100
