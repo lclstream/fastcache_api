@@ -42,6 +42,16 @@ def allocate_port_pair(in_use: set[int], start: int, end: int) -> tuple[int, int
 _processes: dict[int, anyio.abc.Process] = {}
 
 
+async def wait_exit(pid: int) -> int | None:
+    """Await a pid we spawned exiting. None if unknown to us."""
+    proc = _processes.get(pid)
+    if proc is None:
+        return None
+    exit_code = await proc.wait()
+    _processes.pop(pid, None)
+    return exit_code
+
+
 async def start_cache(
     cache_id: UUID, config: CacheConfig, log_path: Path
 ) -> CacheProcess:
