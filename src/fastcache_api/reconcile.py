@@ -45,7 +45,30 @@ async def sweep_dead_caches() -> int:
 async def reconcile_caches() -> None:
     """One-shot sweep at startup to reconcile DB state against live processes."""
     stale = await sweep_dead_caches()
-    logger.info("Startup reconcile complete; %d cache(s) marked failed", stale)
+    logger.info("Startup reconcile complete; %d cache(s) reconciled", stale)
+
+
+async def watch_and_record(cache_id: UUID, pid: int) -> None:
+    exit_code = await wait_exit(pid)
+    if exit_code is None:
+        return
+    # we shield from app shutdown - we will lose our db connection
+    # and this won't be able to commit properly
+    with anyio.CancelScope(shield=True):
+        async with SessionLocal() as session:
+            cache = await session.get(Cache, cache_id)
+            if cache is None or CacheState(cache.state).is_final():
+                return
+            cache.state = CacheState.completed if exit_code == 0 else CacheState.failed
+            cache.exit_code = exit_code
+            await session.commit()
+    logger.info(
+        "Cache %s (pid=%d) exited (code=%s); marked %s",
+        cache_id,
+        pid,
+        exit_code,
+        cache.state,
+    )
 
 
 async def monitor_caches() -> None:

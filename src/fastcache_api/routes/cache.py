@@ -123,6 +123,7 @@ async def create_cache(
         ) from exc
 
     await session.refresh(cache)
+    schedule_exit_watch(cache.id, proc.pid)
     return cache
 
 
