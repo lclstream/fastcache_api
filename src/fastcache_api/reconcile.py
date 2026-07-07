@@ -1,12 +1,14 @@
 import asyncio
 import logging
+from uuid import UUID
 
+import anyio
 from sqlalchemy import select
 
 from .config import settings
 from .db import SessionLocal
 from .models import CacheState
-from .process import is_alive
+from .process import exit_code, is_alive, wait_exit
 from .tables import Cache
 
 logger = logging.getLogger(__name__)
@@ -16,10 +18,11 @@ _NON_FINAL = [s.value for s in CacheState if not s.is_final()]
 
 
 async def sweep_dead_caches() -> int:
-    """Mark non-final caches whose process is gone as failed; return how many.
+    """Reconcile non-final caches whose process is gone; return how many changed.
 
     Caches outlive the api server, so a row's state is a claim we verify against
-    the live process.
+    the live process. Exit code 0 -> completed, else (or unknown, e.g. after an
+    api restart) -> failed.
     """
     async with SessionLocal() as session:
         result = await session.execute(select(Cache).where(Cache.state.in_(_NON_FINAL)))
@@ -29,12 +32,16 @@ async def sweep_dead_caches() -> int:
         for cache in caches:
             if is_alive(cache.pid, cache.create_time):
                 continue
+            ec = exit_code(cache.pid)
+            cache.state = CacheState.completed if ec == 0 else CacheState.failed
+            cache.exit_code = ec
             logger.warning(
-                "Cache %s (pid=%d) is no longer running; marking failed",
+                "Cache %s (pid=%d) is no longer running (exit_code=%s); marking %s",
                 cache.id,
                 cache.pid,
+                ec,
+                cache.state,
             )
-            cache.state = CacheState.failed
             stale += 1
 
         if stale:
