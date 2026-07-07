@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..config import settings
 from ..db import get_session
 from ..dependencies import TokenPayload, require_user
+from ..lifecycle import schedule_exit_watch
 from ..models import (
     CacheConfig,
     CachePublic,
@@ -91,7 +92,7 @@ async def create_cache(
 
     cache_id = uuid4()
     try:
-        proc = start_cache(cache_id, config, req.log_path)
+        proc = await start_cache(cache_id, config, req.log_path)
     except (FileNotFoundError, OSError, RuntimeError) as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -115,7 +116,7 @@ async def create_cache(
     except IntegrityError as exc:
         await session.rollback()
         # Don't leave an orphaned process behind for the rejected request.
-        stop_cache(proc.pid, proc.create_time, timeout=0)
+        await stop_cache(proc.pid, proc.create_time, timeout=0)
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(f"Cache with transfer_id '{req.transfer_id}' already exists"),
