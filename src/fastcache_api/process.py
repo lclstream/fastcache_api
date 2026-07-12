@@ -2,7 +2,6 @@ import contextlib
 import logging
 import socket
 import subprocess
-from collections.abc import Iterable
 from pathlib import Path
 from uuid import UUID
 
@@ -19,23 +18,6 @@ logger = logging.getLogger(__name__)
 def canonical_hostname() -> str:
     """This host's preferred public name for cache ZMQ URIs."""
     return (socket.getfqdn() or socket.gethostname()).lower()
-
-
-def ports_in_use(configs: Iterable[CacheConfig]) -> set[int]:
-    used: set[int] = set()
-    for config in configs:
-        for uri in (config.pull_uri, config.push_uri):
-            if uri.port is not None:
-                used.add(uri.port)
-    return used
-
-
-def allocate_port_pair(in_use: set[int], start: int, end: int) -> tuple[int, int]:
-    for pull in range(start, end + 1, 2):
-        push = pull + 1
-        if push <= end and pull not in in_use and push not in in_use:
-            return pull, push
-    raise RuntimeError(f"no free cache port pair in range [{start}, {end}]")
 
 
 # Live anyio Process handles for children we spawned
