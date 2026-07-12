@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.14"
 dependencies = [
     "aiosqlite>=0.22.1",
+    "alembic>=1.18.5",
     "anyio>=4.14.0",
     "fastapi>=0.138.0",
     "fastapi-jwks>=2.0.2",
@@ -33,6 +34,21 @@ dev = [
     "ruff>=0.15.18",
     "types-psutil>=7.2.2.20260518",
 ]
+
+[tool.alembic]
+script_location = "fastcache_api:alembic"
+
+[[tool.alembic.post_write_hooks]]
+name = "ruff_format"
+type = "exec"
+executable = "uv"
+options = "run ruff format REVISION_SCRIPT_FILENAME"
+
+[[tool.alembic.post_write_hooks]]
+name = "ruff_check"
+type = "exec"
+executable = "uv"
+options = "run ruff check --fix REVISION_SCRIPT_FILENAME"
 
 [tool.ruff]
 target-version = "py314"
