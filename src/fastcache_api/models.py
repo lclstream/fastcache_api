@@ -58,6 +58,8 @@ class CacheRequest(BaseModel):
     requested_by: str
     # Absolute path the orchestrator dictates for this cache's log.
     log_path: Path
+    # Override for CacheConfig.timeout (fastcache's idle-receive timeout, ms).
+    idle_timeout_ms: int | None = None
 
 
 class CachePublic(BaseModel):
