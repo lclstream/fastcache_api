@@ -74,10 +74,16 @@ async def create_cache(session: AsyncSession, req: CacheRequest) -> CacheCreatio
     except RuntimeError as exc:
         raise CachePortsExhausted(str(exc)) from exc
 
+    timeout = (
+        req.idle_timeout_ms
+        if req.idle_timeout_ms is not None
+        else CacheConfig.model_fields["timeout"].default
+    )
     config = CacheConfig(
         hostname=hostname,
         pull_uri=f"tcp://{hostname}:{pull_port}",
         push_uri=f"tcp://{hostname}:{push_port}",
+        timeout=timeout,
     )
 
     cache_id = uuid4()
