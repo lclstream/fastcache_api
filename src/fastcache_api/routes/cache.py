@@ -6,13 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .. import service
 from ..db import get_session
-from ..dependencies import TokenPayload, require_user
 from ..models import CachePublic, CacheRequest, CachesPublic
 
 router = APIRouter(
     prefix="/caches",
     tags=["caches"],
-    dependencies=[Depends(require_user)],
 )
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
@@ -31,7 +29,6 @@ async def get_cache(cache_id: UUID, session: SessionDep) -> CachePublic:
 @router.post("/", response_model=CachePublic, status_code=status.HTTP_201_CREATED)
 async def create_cache(
     req: CacheRequest,
-    user: Annotated[TokenPayload, Depends(require_user)],
     session: SessionDep,
     response: Response,
 ) -> CachePublic:
