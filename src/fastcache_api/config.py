@@ -1,16 +1,8 @@
 from pathlib import Path
-from typing import Annotated, Any, Literal
+from typing import Literal
 
-from pydantic import BeforeValidator, model_validator
-from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
-
-
-def parse_comma_list(v: Any) -> list[str] | str:
-    if isinstance(v, str) and not v.startswith("["):
-        return [i.strip() for i in v.split(",") if i.strip()]
-    elif isinstance(v, list | str):
-        return v
-    raise ValueError(v)
+from pydantic import model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -35,19 +27,6 @@ class Settings(BaseSettings):
 
     # SQLite database file path; async access via aiosqlite.
     SQLITE_PATH: Path = Path("fastcache_api.sqlite")
-
-    # Verified email addresses allowed to access the service.
-    EXPECTED_USERS: Annotated[
-        list[str], BeforeValidator(parse_comma_list), NoDecode
-    ] = []
-
-    # OIDC token validation. Identity provider is configured via environment;
-    # no provider URL is baked into source.
-    OIDC_ISSUER_URL: str
-    OIDC_JWKS_URI: str | None = None
-    OIDC_AUDIENCES: Annotated[
-        list[str], BeforeValidator(parse_comma_list), NoDecode
-    ] = []
 
     CACHE_PORT_START: int = 30000
     CACHE_PORT_END: int = 30100

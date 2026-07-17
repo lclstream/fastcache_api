@@ -2,6 +2,17 @@
 
 API for fastcache
 
+## Authentication
+
+The API uses mutual TLS as its sole authentication boundary. The server accepts
+only client certificates signed by `SSL_CA_CERTS` when
+`REQUIRE_CLIENT_CERT=true`; staging and production refuse to start without
+that configuration. Use a CA dedicated to the `lclstream_api` client.
+
+`requested_by` is retained on cache records for audit purposes. It is metadata
+from the trusted mTLS client, not an independently authenticated identity and
+does not grant per-cache ownership.
+
 ## Database
 
 Schema is managed by Alembic (`src/fastcache_api/alembic/`), not
