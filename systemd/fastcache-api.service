@@ -34,6 +34,7 @@ StartLimitBurst=5
 Type=simple
 WorkingDirectory=%h/gits/lclstream/fastcache_api
 EnvironmentFile=%h/.config/fastcache_api/fastcache_api.env
+ExecStartPre=%h/gits/lclstream/fastcache_api/.venv/bin/alembic upgrade head
 # systemd 239 here predates StandardOutput=append: (needs v240+), so redirect
 # via a shell instead. Logs (uvicorn + our own logging) land in a real file
 # under .local/state instead of only the (often unreadable) user journal.
