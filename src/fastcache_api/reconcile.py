@@ -3,18 +3,14 @@ import logging
 from uuid import UUID
 
 import anyio
-from sqlalchemy import select
 
+from . import repo
 from .config import settings
 from .db import SessionLocal
 from .models import CacheState
 from .process import exit_code, is_alive, wait_exit
-from .tables import Cache
 
 logger = logging.getLogger(__name__)
-
-# States whose process should still be running, so must be checked vs reality.
-_NON_FINAL = [s.value for s in CacheState if not s.is_final()]
 
 
 async def sweep_dead_caches() -> int:
@@ -25,17 +21,14 @@ async def sweep_dead_caches() -> int:
     api restart) -> failed.
     """
     async with SessionLocal() as session:
-        result = await session.execute(select(Cache).where(Cache.state.in_(_NON_FINAL)))
-        caches = result.scalars().all()
+        caches = await repo.list_non_final(session)
 
         stale = 0
         for cache in caches:
             if is_alive(cache.pid, cache.create_time):
                 continue
             ec = exit_code(cache.pid)
-            cache.state = CacheState.completed if ec == 0 else CacheState.failed
-            cache.exit_code = ec
-            cache.key = None  # Free the key!
+            repo.finalize_cache(cache, ec)
             logger.warning(
                 "Cache %s (pid=%d) is no longer running (exit_code=%s); marking %s",
                 cache.id,
@@ -64,12 +57,10 @@ async def watch_and_record(cache_id: UUID, pid: int) -> None:
     # and this won't be able to commit properly
     with anyio.CancelScope(shield=True):
         async with SessionLocal() as session:
-            cache = await session.get(Cache, cache_id)
+            cache = await repo.get_cache(session, cache_id)
             if cache is None or CacheState(cache.state).is_final():
                 return
-            cache.state = CacheState.completed if exit_code == 0 else CacheState.failed
-            cache.exit_code = exit_code
-            cache.key = None
+            repo.finalize_cache(cache, exit_code)
             await session.commit()
     logger.info(
         "Cache %s (pid=%d) exited (code=%s); marked %s",
