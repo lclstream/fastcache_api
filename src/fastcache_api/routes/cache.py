@@ -91,7 +91,7 @@ async def create_cache(
 
     cache_id = uuid4()
     try:
-        proc = start_cache(cache_id, config)
+        proc = start_cache(cache_id, config, req.log_path)
     except (FileNotFoundError, OSError, RuntimeError) as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

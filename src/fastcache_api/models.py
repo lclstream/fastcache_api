@@ -54,6 +54,8 @@ class CacheRequest(BaseModel):
     # Human who initiated the transfer upstream (bearer token is a shared
     # service identity, so attribution must travel in the request body).
     requested_by: str
+    # Absolute path the orchestrator dictates for this cache's log.
+    log_path: Path
 
 
 class CachePublic(BaseModel):
