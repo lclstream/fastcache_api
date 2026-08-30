@@ -8,7 +8,7 @@ from uuid import UUID
 import psutil
 
 from .config import settings
-from .models import CacheConfig, CacheProcess, FastcacheConfig
+from .models import CacheConfig, CacheProcess
 
 logger = logging.getLogger(__name__)
 
@@ -40,9 +40,7 @@ def start_cache(cache_id: UUID, config: CacheConfig) -> CacheProcess:
     run_dir.mkdir(parents=True, exist_ok=True)
 
     config_path = run_dir / "config.json"
-    config_path.write_text(
-        FastcacheConfig.from_cache_config(config).model_dump_json(indent=2)
-    )
+    config_path.write_text(config.to_fastcache_json())
 
     log_path = (run_dir / "cache.log").resolve()
     with log_path.open("ab") as log_file:
