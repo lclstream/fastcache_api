@@ -24,6 +24,7 @@ def custom_generate_unique_id(route: APIRoute) -> str:
 
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncGenerator[None]:
+    validate_server_security()
     logger.info("Starting %s...", settings.PROJECT_NAME)
     await reconcile_caches()
     monitor = asyncio.create_task(monitor_caches())
@@ -48,7 +49,7 @@ register_exception_handlers(app)
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
-def main() -> None:
+def validate_server_security() -> None:
     if not settings.tls_enabled:
         if settings.ENVIRONMENT in ("staging", "production"):
             raise RuntimeError(
@@ -60,6 +61,19 @@ def main() -> None:
             "Set SSL_CERTFILE and SSL_KEYFILE to enable HTTPS. "
             "Do NOT use this in staging/production. !!!"
         )
+    if (
+        settings.ENVIRONMENT in ("staging", "production")
+        and not settings.REQUIRE_CLIENT_CERT
+    ):
+        raise RuntimeError(
+            f"Refusing to start without required client certificates in "
+            f"'{settings.ENVIRONMENT}'. Set SSL_CA_CERTS and "
+            "REQUIRE_CLIENT_CERT=true to enable mTLS."
+        )
+
+
+def main() -> None:
+    validate_server_security()
 
     uvicorn.run(
         app,
