@@ -18,6 +18,30 @@ class CacheState(StrEnum):
         return self.value in ("completed", "failed", "canceled")
 
 
+class CacheOutput(StrEnum):
+    """fastcache's outgoing socket, and what a consumer must dial.
+
+    Values map to the ``type`` field of fastcache's config (see its README).
+    ``router`` and ``rep`` are request-driven: the consumer asks for each
+    message rather than being pushed to. Metrics only work under ``push``.
+    """
+
+    push = "push"  # fastcache type 4; consumer connects PULL
+    router = "router"  # type 5; consumer connects DEALER
+    rep = "rep"  # type 6; consumer connects REQ
+
+    @property
+    def fastcache_type(self) -> int:
+        return _FASTCACHE_TYPE[self]
+
+
+_FASTCACHE_TYPE = {
+    CacheOutput.push: 4,
+    CacheOutput.router: 5,
+    CacheOutput.rep: 6,
+}
+
+
 class CacheConfig(BaseModel):
     """Configuration document persisted as JSON on a cache row.
 
@@ -60,6 +84,8 @@ class CacheRequest(BaseModel):
     log_path: Path
     # Override for CacheConfig.timeout (fastcache's idle-receive timeout, ms).
     idle_timeout_ms: int | None = None
+    # Outgoing socket pattern; decides what the consumer connects with.
+    output: CacheOutput = CacheOutput.push
 
 
 class CachePublic(BaseModel):

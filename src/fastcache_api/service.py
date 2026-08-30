@@ -84,6 +84,7 @@ async def create_cache(session: AsyncSession, req: CacheRequest) -> CacheCreatio
         pull_uri=f"tcp://{hostname}:{pull_port}",
         push_uri=f"tcp://{hostname}:{push_port}",
         timeout=timeout,
+        type=req.output.fastcache_type,
     )
 
     cache_id = uuid4()
