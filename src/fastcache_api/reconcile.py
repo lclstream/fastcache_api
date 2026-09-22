@@ -35,6 +35,7 @@ async def sweep_dead_caches() -> int:
             ec = exit_code(cache.pid)
             cache.state = CacheState.completed if ec == 0 else CacheState.failed
             cache.exit_code = ec
+            cache.key = None  # Free the key!
             logger.warning(
                 "Cache %s (pid=%d) is no longer running (exit_code=%s); marking %s",
                 cache.id,
@@ -68,6 +69,7 @@ async def watch_and_record(cache_id: UUID, pid: int) -> None:
                 return
             cache.state = CacheState.completed if exit_code == 0 else CacheState.failed
             cache.exit_code = exit_code
+            cache.key = None
             await session.commit()
     logger.info(
         "Cache %s (pid=%d) exited (code=%s); marked %s",
