@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     CACHE_PORT_START: int = 30000
     CACHE_PORT_END: int = 30100
 
+    # Refuse to start anywhere else
+    EXPECTED_HOSTNAME: str | None = None
+
     # Cache process management
     # Path to the fastcache executable (overridable; defaults to PATH lookup).
     FASTCACHE_BINARY: Path = Path("lclstream-fastcache")
