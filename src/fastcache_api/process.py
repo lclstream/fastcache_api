@@ -14,6 +14,13 @@ from .models import CacheConfig, CacheProcess
 
 logger = logging.getLogger(__name__)
 
+CONFIG_FILENAME = "config.json"
+CACHE_LOG_FILENAME = "cache.log"
+# Traversable + readable by everyone
+RUN_DIR_MODE = 0o755
+CACHE_LOG_MODE = 0o644
+CONFIG_MODE = 0o600
+
 
 def canonical_hostname() -> str:
     """This host's preferred public name for cache ZMQ URIs."""
@@ -42,16 +49,34 @@ async def wait_exit(pid: int) -> int | None:
     return exit_code
 
 
-async def start_cache(
-    cache_id: UUID, config: CacheConfig, log_path: Path
-) -> CacheProcess:
-    run_dir = log_path.parent
-    run_dir.mkdir(parents=True, exist_ok=True)
+def ensure_cache_root() -> Path:
+    """The run-dir tree, created and opened up. Ours to own, not the caller's.
 
-    config_path = run_dir / "config.json"
+    chmod is explicit because the unit runs with UMask=0077, which would
+    otherwise leave everything owner-only and unreadable to the users
+    lclstream_api serves these logs to.
+    """
+    root = settings.CACHE_LOG_DIR.resolve()
+    root.mkdir(parents=True, exist_ok=True)
+    root.chmod(RUN_DIR_MODE)
+    return root
+
+
+async def start_cache(cache_id: UUID, config: CacheConfig) -> CacheProcess:
+    """Spawn a cache, with its run dir under the tree this service owns."""
+    run_dir = ensure_cache_root() / str(cache_id)
+    run_dir.mkdir(exist_ok=True)
+    run_dir.chmod(RUN_DIR_MODE)
+
+    config_path = run_dir / CONFIG_FILENAME
     config_path.write_text(config.to_fastcache_json())
+    config_path.chmod(CONFIG_MODE)
 
-    log_path = log_path.resolve()
+    log_path = run_dir / CACHE_LOG_FILENAME
+    # Created before the child so the mode is set even on an instant exit.
+    log_path.touch()
+    log_path.chmod(CACHE_LOG_MODE)
+
     with log_path.open("ab") as log_file:
         proc = await anyio.open_process(
             [settings.FASTCACHE_BINARY, config_path],
