@@ -12,7 +12,7 @@ from fastapi.routing import APIRoute
 from .config import settings
 from .exceptions import register_exception_handlers
 from .lifecycle import exit_watchers
-from .process import canonical_hostname
+from .process import canonical_hostname, ensure_cache_root
 from .reconcile import monitor_caches, reconcile_caches
 from .routes import api_router
 
@@ -27,6 +27,7 @@ def custom_generate_unique_id(route: APIRoute) -> str:
 async def lifespan(application: FastAPI) -> AsyncGenerator[None]:
     validate_host()
     validate_server_security()
+    validate_cache_log_dir()
     logger.info("Starting %s...", settings.PROJECT_NAME)
     await reconcile_caches()
     monitor = asyncio.create_task(monitor_caches())
@@ -63,6 +64,14 @@ def validate_host() -> None:
         )
 
 
+def validate_cache_log_dir() -> None:
+    """Fail at boot, not as an opaque 503 on the first create_cache."""
+    try:
+        ensure_cache_root()
+    except OSError as exc:
+        raise RuntimeError(f"CACHE_LOG_DIR is unusable: {exc}") from exc
+
+
 def validate_server_security() -> None:
     if not settings.tls_enabled:
         if settings.ENVIRONMENT in ("staging", "production"):
@@ -89,6 +98,7 @@ def validate_server_security() -> None:
 def main() -> None:
     validate_host()
     validate_server_security()
+    validate_cache_log_dir()
 
     uvicorn.run(
         app,
