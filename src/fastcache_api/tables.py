@@ -39,7 +39,16 @@ class Cache(DTMixin, Base):
     __tablename__ = "caches"
 
     id: Mapped[UUID] = mapped_column(default=uuid4, primary_key=True)
-    transfer_id: Mapped[str] = mapped_column(unique=True, doc="Unique transfer ID")
+    key: Mapped[str | None] = mapped_column(
+        unique=True,
+        default=None,
+        doc=(
+            "Dedup/lookup ID from the request (e.g. a transfer id for "
+            "a one-off cache, or a shared key like an experiment name for a "
+            "joinable one). Cleared when the cache is torn down, freeing the "
+            "key for reuse."
+        ),
+    )
     pid: Mapped[int] = mapped_column(doc="PID of the cache process")
     create_time: Mapped[float | None] = mapped_column(
         default=None,
