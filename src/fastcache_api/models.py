@@ -62,10 +62,9 @@ class FastcacheConfig(BaseModel):
 
 class CacheRequest(BaseModel):
     transfer_id: str
-    hostname: str
-    # later relax to none
-    pull_port: int
-    push_port: int
+    # Human who initiated the transfer upstream (bearer token is a shared
+    # service identity, so attribution must travel in the request body).
+    requested_by: str
 
 
 class CachePublic(BaseModel):

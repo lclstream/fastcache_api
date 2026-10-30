@@ -2,7 +2,7 @@ import contextlib
 import logging
 import socket
 import subprocess
-from functools import lru_cache
+from collections.abc import Iterable
 from uuid import UUID
 
 import psutil
@@ -13,11 +13,26 @@ from .models import CacheConfig, CacheProcess, FastcacheConfig
 logger = logging.getLogger(__name__)
 
 
-@lru_cache(maxsize=1)
-def local_hostnames() -> set[str]:
-    names = {socket.gethostname(), socket.getfqdn()}
-    names |= {name.split(".", 1)[0] for name in names}
-    return {name.lower() for name in names if name}
+def canonical_hostname() -> str:
+    """This host's preferred public name for cache ZMQ URIs."""
+    return (socket.getfqdn() or socket.gethostname()).lower()
+
+
+def ports_in_use(configs: Iterable[CacheConfig]) -> set[int]:
+    used: set[int] = set()
+    for config in configs:
+        for uri in (config.pull_uri, config.push_uri):
+            if uri.port is not None:
+                used.add(uri.port)
+    return used
+
+
+def allocate_port_pair(in_use: set[int], start: int, end: int) -> tuple[int, int]:
+    for pull in range(start, end + 1, 2):
+        push = pull + 1
+        if push <= end and pull not in in_use and push not in in_use:
+            return pull, push
+    raise RuntimeError(f"no free cache port pair in range [{start}, {end}]")
 
 
 def start_cache(cache_id: UUID, config: CacheConfig) -> CacheProcess:
