@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.routing import APIRoute
 
 from .config import settings
+from .exceptions import register_exception_handlers
 from .lifecycle import exit_watchers
 from .reconcile import monitor_caches, reconcile_caches
 from .routes import api_router
@@ -41,6 +42,8 @@ app = FastAPI(
     generate_unique_id_function=custom_generate_unique_id,
     lifespan=lifespan,
 )
+
+register_exception_handlers(app)
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
