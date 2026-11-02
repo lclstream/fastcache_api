@@ -33,7 +33,8 @@ StartLimitBurst=5
 [Service]
 Type=simple
 EnvironmentFile=%h/.config/fastcache_api/fastcache_api.env
-ExecStartPre=%h/gits/lclstream/fastcache_api/.venv/bin/alembic upgrade head
+# alembic reads [tool.alembic] from ./pyproject.toml, so run it from there.
+ExecStartPre=/bin/sh -c 'cd "$${FASTCACHE_API_DIR:?}" && exec .venv/bin/alembic upgrade head'
 # systemd 239 here predates StandardOutput=append: (needs v240+), so redirect
 # via a shell instead. Logs (uvicorn + our own logging) land in a real file
 # under .local/state instead of only the (often unreadable) user journal.
