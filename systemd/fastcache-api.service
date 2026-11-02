@@ -27,18 +27,17 @@
 Description=LCLStream fastcache API
 After=network-online.target
 Wants=network-online.target
-ConditionHost=sdfdtn002
 StartLimitIntervalSec=300
 StartLimitBurst=5
 
 [Service]
 Type=simple
-WorkingDirectory=%h/gits/lclstream/fastcache_api
 EnvironmentFile=%h/.config/fastcache_api/fastcache_api.env
 # systemd 239 here predates StandardOutput=append: (needs v240+), so redirect
 # via a shell instead. Logs (uvicorn + our own logging) land in a real file
 # under .local/state instead of only the (often unreadable) user journal.
-ExecStart=/bin/sh -c 'exec "%h/gits/lclstream/fastcache_api/.venv/bin/fastcache-api" >> "%h/.local/state/fastcache_api/fastcache-api.log" 2>&1'
+# WorkingDirectory= can't read the env file, so cd via a shell instead.
+ExecStart=/bin/sh -c 'cd "$${FASTCACHE_API_DIR:?}" && exec .venv/bin/fastcache-api >> "%h/.local/state/fastcache_api/fastcache-api.log" 2>&1'
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=30

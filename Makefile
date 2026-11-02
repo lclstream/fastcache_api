@@ -7,7 +7,8 @@
 
 CERT_DIR = certs
 CERT_DAYS ?= 180
-CERT_HOST ?= sdfdtn002.sdf.slac.stanford.edu
+# FQDN of the api host (its EXPECTED_HOSTNAME); required for the server cert.
+CERT_HOST ?=
 CERT_VALIDITY = $(shell echo $$(($(CERT_DAYS) * 24))h)
 
 VAULT_ADDR ?= https://vault.slac.stanford.edu
@@ -28,6 +29,7 @@ $(CERT_DIR)/ca.crt:
 server: $(CERT_DIR)/server.crt
 
 $(CERT_DIR)/server.crt: $(CERT_DIR)/ca.crt
+	@test -n "$(CERT_HOST)" || { echo "set CERT_HOST: make certs CERT_HOST=<api host fqdn>"; exit 1; }
 	step certificate create "$(CERT_HOST)" $(CERT_DIR)/server.crt $(CERT_DIR)/server.key \
 		--profile leaf --ca $(CERT_DIR)/ca.crt --ca-key $(CERT_DIR)/ca.key \
 		--san $(CERT_HOST) --not-after $(CERT_VALIDITY) --no-password --insecure -f
