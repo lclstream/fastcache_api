@@ -10,7 +10,6 @@ from fastapi import FastAPI
 from fastapi.routing import APIRoute
 
 from .config import settings
-from .db import init_db
 from .lifecycle import exit_watchers
 from .reconcile import monitor_caches, reconcile_caches
 from .routes import api_router
@@ -25,7 +24,6 @@ def custom_generate_unique_id(route: APIRoute) -> str:
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncGenerator[None]:
     logger.info("Starting %s...", settings.PROJECT_NAME)
-    await init_db()
     await reconcile_caches()
     monitor = asyncio.create_task(monitor_caches())
     try:
