@@ -50,7 +50,9 @@ class CacheConfig(BaseModel):
 
 
 class CacheRequest(BaseModel):
-    transfer_id: str
+    # The cache's dedup/lookup identity. Could be per-transfer (transfer ID)
+    # or per-experiment (experiment name)
+    key: str
     # Human who initiated the transfer upstream (bearer token is a shared
     # service identity, so attribution must travel in the request body).
     requested_by: str
@@ -62,7 +64,7 @@ class CachePublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    transfer_id: str
+    key: str | None
     user: str
     state: CacheState
     exit_code: int | None
