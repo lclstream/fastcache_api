@@ -11,6 +11,7 @@ from fastapi.routing import APIRoute
 
 from .config import settings
 from .db import init_db
+from .lifecycle import exit_watchers
 from .reconcile import monitor_caches, reconcile_caches
 from .routes import api_router
 
@@ -28,7 +29,8 @@ async def lifespan(application: FastAPI) -> AsyncGenerator[None]:
     await reconcile_caches()
     monitor = asyncio.create_task(monitor_caches())
     try:
-        yield
+        async with exit_watchers():
+            yield
     finally:
         monitor.cancel()
         with contextlib.suppress(asyncio.CancelledError):
