@@ -12,6 +12,7 @@ from fastapi.routing import APIRoute
 from .config import settings
 from .exceptions import register_exception_handlers
 from .lifecycle import exit_watchers
+from .process import canonical_hostname
 from .reconcile import monitor_caches, reconcile_caches
 from .routes import api_router
 
@@ -24,6 +25,7 @@ def custom_generate_unique_id(route: APIRoute) -> str:
 
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncGenerator[None]:
+    validate_host()
     validate_server_security()
     logger.info("Starting %s...", settings.PROJECT_NAME)
     await reconcile_caches()
@@ -47,6 +49,18 @@ app = FastAPI(
 register_exception_handlers(app)
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+
+def validate_host() -> None:
+    """One host owns the cache table; the server cert names it too."""
+    if not settings.EXPECTED_HOSTNAME:
+        return
+    host = canonical_hostname()
+    if host != settings.EXPECTED_HOSTNAME.lower():
+        raise RuntimeError(
+            f"Refusing to start on '{host}': pinned to "
+            f"'{settings.EXPECTED_HOSTNAME}' via EXPECTED_HOSTNAME"
+        )
 
 
 def validate_server_security() -> None:
@@ -73,6 +87,7 @@ def validate_server_security() -> None:
 
 
 def main() -> None:
+    validate_host()
     validate_server_security()
 
     uvicorn.run(
