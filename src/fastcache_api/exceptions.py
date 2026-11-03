@@ -1,6 +1,8 @@
 import logging
 
 from fastapi import FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
@@ -23,6 +25,19 @@ class CacheStartFailed(Exception):
 
 
 def register_exception_handlers(app: FastAPI) -> None:
+    @app.exception_handler(RequestValidationError)
+    async def _handle_invalid_request(
+        _request: Request, exc: RequestValidationError
+    ) -> JSONResponse:
+        # Never echo input: ejfat_uri holds a token.
+        errors = [
+            {k: v for k, v in err.items() if k != "input"} for err in exc.errors()
+        ]
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            content={"detail": jsonable_encoder(errors)},
+        )
+
     @app.exception_handler(CacheNotFound)
     async def _handle_not_found(_request: Request, exc: CacheNotFound) -> JSONResponse:
         return JSONResponse(
