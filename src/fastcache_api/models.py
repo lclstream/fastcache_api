@@ -80,8 +80,6 @@ class CacheRequest(BaseModel):
     # Human who initiated the transfer upstream (bearer token is a shared
     # service identity, so attribution must travel in the request body).
     requested_by: str
-    # Absolute path the orchestrator dictates for this cache's log.
-    log_path: Path
     # Override for CacheConfig.timeout (fastcache's idle-receive timeout, ms).
     idle_timeout_ms: int | None = None
     # Outgoing socket pattern; decides what the consumer connects with.
