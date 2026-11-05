@@ -3,7 +3,7 @@ from enum import IntEnum, StrEnum
 from pathlib import Path
 from uuid import UUID
 
-from pydantic import AnyUrl, BaseModel, ConfigDict
+from pydantic import AnyUrl, BaseModel, ConfigDict, SecretStr, model_validator
 
 
 class CacheState(StrEnum):
@@ -24,6 +24,7 @@ class RunType(IntEnum):
     LockFreePush = 4
     LockFreeDealer = 5
     LockFreeReply = 6
+    ZMQPULLinEJFatOut = 9
 
 
 class CacheOutput(StrEnum):
@@ -37,6 +38,8 @@ class CacheOutput(StrEnum):
     push = "push"  # fastcache type 4; consumer connects PULL
     router = "router"  # type 5; consumer connects DEALER
     rep = "rep"  # type 6; consumer connects REQ
+    # type 9; segments into an EJFAT LB, the consumer runs the reassembler
+    ejfat = "ejfat"
 
     @property
     def fastcache_type(self) -> RunType:
@@ -47,16 +50,18 @@ _FASTCACHE_TYPE = {
     CacheOutput.push: RunType.LockFreePush,
     CacheOutput.router: RunType.LockFreeDealer,
     CacheOutput.rep: RunType.LockFreeReply,
+    CacheOutput.ejfat: RunType.ZMQPULLinEJFatOut,
 }
 
 
 class CacheConfig(BaseModel):
     """Configuration document persisted as JSON on a cache row.
 
-    Mirrors the cacheserver config (see config/default.json) plus the
-    resolved ZMQ bind URIs. ``to_fastcache_json`` renders the on-disk config
-    the fastcache binary consumes (see src/config.cpp): the ZMQ URIs are
-    renamed to ``inurl``/``outurl`` and ``hostname`` is dropped.
+    Mirrors the cacheserver config (see fastcache's config/default.json) plus
+    the resolved ZMQ bind URIs. ``to_fastcache_json`` renders the on-disk
+    config the fastcache binary consumes (see fastcache's src/config.cpp):
+    the ZMQ URIs are renamed to ``inurl``/``outurl`` and ``hostname`` is
+    dropped.
     """
 
     hostname: str
@@ -72,15 +77,21 @@ class CacheConfig(BaseModel):
     verbose: bool = False
 
     def to_fastcache_json(self, indent: int = 2) -> str:
-        """Render the config consumed by the fastcache binary."""
-        data = self.model_dump(
-            mode="json", exclude={"hostname", "pull_uri", "push_uri"}
-        )
-        data["type"] = self.type.name
-        return json.dumps(
-            {"inurl": str(self.pull_uri), "outurl": str(self.push_uri), **data},
-            indent=indent,
-        )
+        """Render the config consumed by the fastcache binary.
+
+        Omitted ``metrics``/``ejfat`` sections take fastcache's defaults.
+        """
+        fastcache = {
+            "inurl": str(self.pull_uri),
+            "outurl": str(self.push_uri),
+            "type": self.type.name,
+            "helper_threads": self.helper_threads,
+            "zmq_io_threads": self.io_threads,
+            "hwm": self.hwm,
+            "timeout": self.timeout,
+            "verbose": self.verbose,
+        }
+        return json.dumps({"fastcache": fastcache}, indent=indent)
 
 
 class CacheRequest(BaseModel):
@@ -94,6 +105,15 @@ class CacheRequest(BaseModel):
     idle_timeout_ms: int | None = None
     # Outgoing socket pattern; decides what the consumer connects with.
     output: CacheOutput = CacheOutput.push
+    # EJFAT LB instance URI for ``ejfat`` output. A credential: it reaches
+    # the child's env only, never the row or the config file.
+    ejfat_uri: SecretStr | None = None
+
+    @model_validator(mode="after")
+    def _ejfat_uri_with_ejfat(self) -> CacheRequest:
+        if (self.output is CacheOutput.ejfat) != (self.ejfat_uri is not None):
+            raise ValueError("ejfat_uri is required for, and only for, ejfat output")
+        return self
 
 
 class CachePublic(BaseModel):
