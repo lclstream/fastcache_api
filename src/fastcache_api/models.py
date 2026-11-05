@@ -1,5 +1,5 @@
 import json
-from enum import StrEnum
+from enum import IntEnum, StrEnum
 from pathlib import Path
 from uuid import UUID
 
@@ -18,6 +18,14 @@ class CacheState(StrEnum):
         return self.value in ("completed", "failed", "canceled")
 
 
+class RunType(IntEnum):
+    """fastcache's pipeline modes (src/config.h). Its config names them."""
+
+    LockFreePush = 4
+    LockFreeDealer = 5
+    LockFreeReply = 6
+
+
 class CacheOutput(StrEnum):
     """fastcache's outgoing socket, and what a consumer must dial.
 
@@ -31,14 +39,14 @@ class CacheOutput(StrEnum):
     rep = "rep"  # type 6; consumer connects REQ
 
     @property
-    def fastcache_type(self) -> int:
+    def fastcache_type(self) -> RunType:
         return _FASTCACHE_TYPE[self]
 
 
 _FASTCACHE_TYPE = {
-    CacheOutput.push: 4,
-    CacheOutput.router: 5,
-    CacheOutput.rep: 6,
+    CacheOutput.push: RunType.LockFreePush,
+    CacheOutput.router: RunType.LockFreeDealer,
+    CacheOutput.rep: RunType.LockFreeReply,
 }
 
 
@@ -54,7 +62,8 @@ class CacheConfig(BaseModel):
     hostname: str
     pull_uri: AnyUrl
     push_uri: AnyUrl
-    type: int = 4
+    # fastcache reads an unknown name as Simple.
+    type: RunType = RunType.LockFreePush
     helper_threads: int = 0
     io_threads: int = 16
     hwm: int = 10
@@ -67,6 +76,7 @@ class CacheConfig(BaseModel):
         data = self.model_dump(
             mode="json", exclude={"hostname", "pull_uri", "push_uri"}
         )
+        data["type"] = self.type.name
         return json.dumps(
             {"inurl": str(self.pull_uri), "outurl": str(self.push_uri), **data},
             indent=indent,
