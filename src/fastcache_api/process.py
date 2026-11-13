@@ -1,5 +1,6 @@
 import contextlib
 import logging
+import os
 import socket
 import subprocess
 from pathlib import Path
@@ -62,7 +63,9 @@ def ensure_cache_root() -> Path:
     return root
 
 
-async def start_cache(cache_id: UUID, config: CacheConfig) -> CacheProcess:
+async def start_cache(
+    cache_id: UUID, config: CacheConfig, ejfat_uri: str | None = None
+) -> CacheProcess:
     """Spawn a cache, with its run dir under the tree this service owns."""
     run_dir = ensure_cache_root() / str(cache_id)
     run_dir.mkdir(exist_ok=True)
@@ -77,10 +80,14 @@ async def start_cache(cache_id: UUID, config: CacheConfig) -> CacheProcess:
     log_path.touch()
     log_path.chmod(CACHE_LOG_MODE)
 
+    # fastcache reads the EJFAT instance URI from env only.
+    env = None if ejfat_uri is None else {**os.environ, "EJFAT_URI": ejfat_uri}
+
     with log_path.open("ab") as log_file:
         proc = await anyio.open_process(
             [settings.FASTCACHE_BINARY, config_path],
             cwd=run_dir,
+            env=env,
             stdout=log_file,
             stderr=subprocess.STDOUT,
             start_new_session=True,

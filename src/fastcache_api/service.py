@@ -89,7 +89,8 @@ async def create_cache(session: AsyncSession, req: CacheRequest) -> CacheCreatio
 
     cache_id = uuid4()
     try:
-        proc = await process.start_cache(cache_id, config)
+        ejfat_uri = req.ejfat_uri.get_secret_value() if req.ejfat_uri else None
+        proc = await process.start_cache(cache_id, config, ejfat_uri)
     except (FileNotFoundError, OSError, RuntimeError) as exc:
         raise CacheStartFailed(f"Failed to start cache process: {exc}") from exc
 
