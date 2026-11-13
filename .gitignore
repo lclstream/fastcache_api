@@ -3,7 +3,7 @@ __pycache__/
 *.py[codz]
 *$py.class
 
-# TLS certificates and keys (generated via `make certs`)
+# TLS certificates and keys (pulled via `make vault-pull`)
 certs/
 *.crt
 *.key

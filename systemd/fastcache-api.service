@@ -18,10 +18,9 @@
 # so an ExecStartPre that calls Vault would block startup/restarts whenever
 # the cached token (~/.vault-token) has expired. Instead, point SSL_CERTFILE/
 # SSL_KEYFILE/SSL_CA_CERTS (in the env file) at wherever your certs already
-# live -- e.g. this repo's certs/ dir after `make certs` -- and refresh them
-# yourself periodically (`make certs && make vault-push`, or run
-# systemd/fetch-certs.sh by hand), then `systemctl --user restart
-# fastcache-api.service` to pick up the new files.
+# live -- e.g. this repo's certs/ dir after `make vault-pull` -- and refresh
+# them when the server cert renews (`make vault-pull`), then
+# `systemctl --user restart fastcache-api.service` to pick up the new files.
 
 [Unit]
 Description=LCLStream fastcache API
